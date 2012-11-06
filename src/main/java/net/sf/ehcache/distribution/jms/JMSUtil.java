@@ -20,6 +20,11 @@ import net.sf.ehcache.CacheException;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.CacheManager;
 
+import javax.jms.Connection;
+import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -222,4 +227,116 @@ public final class JMSUtil {
     public static int localCacheManagerUid(CacheManager cacheManager) {
         return System.identityHashCode(cacheManager);
     }
+    
+    /**
+	 * Close the given JMS Connection and ignore any thrown exception.
+	 * This is useful for typical <code>finally</code> blocks in manual JMS code.
+	 * @param con the JMS Connection to close (may be <code>null</code>)
+	 */
+	public static void closeConnection(Connection con) {
+		closeConnection(con, false);
+	}
+
+	/**
+	 * Close the given JMS Connection and ignore any thrown exception.
+	 * This is useful for typical <code>finally</code> blocks in manual JMS code.
+	 * @param con the JMS Connection to close (may be <code>null</code>)
+	 * @param stop whether to call <code>stop()</code> before closing
+	 */
+	public static void closeConnection(Connection con, boolean stop) {
+		if (con != null) {
+			try {
+				if (stop) {
+					try {
+						con.stop();
+					}
+					finally {
+						con.close();
+					}
+				}
+				else {
+					con.close();
+				}
+			}
+			catch (javax.jms.IllegalStateException ex) {
+				LOG.log(Level.FINER, "Ignoring Connection state exception - assuming already closed: " + ex);
+			}
+			catch (JMSException ex) {
+				LOG.log(Level.FINER, "Could not close JMS Connection", ex);
+			}
+			catch (Throwable ex) {
+				// We don't trust the JMS provider: It might throw RuntimeException or Error.
+				LOG.log(Level.FINER, "Unexpected exception on closing JMS Connection", ex);
+			}
+		}
+	}
+    
+	/**
+	 * Close the given JMS Session and ignore any thrown exception.
+	 * This is useful for typical <code>finally</code> blocks in manual JMS code.
+	 * @param session the JMS Session to close (may be <code>null</code>)
+	 */
+	public static void closeSession(Session session) {
+		if (session != null) {
+			try {
+				session.close();
+			}
+			catch (JMSException ex) {
+				LOG.log(Level.FINEST, "Could not close JMS Session", ex);
+			}
+			catch (Throwable ex) {
+				// We don't trust the JMS provider: It might throw RuntimeException or Error.
+				LOG.log(Level.FINEST, "Unexpected exception on closing JMS Session", ex);
+			}
+		}
+	}
+	
+	/**
+	 * Close the given JMS MessageConsumer and ignore any thrown exception.
+	 * This is useful for typical <code>finally</code> blocks in manual JMS code.
+	 * @param consumer the JMS MessageConsumer to close (may be <code>null</code>)
+	 */
+	public static void closeMessageConsumer(MessageConsumer consumer) {
+		if (consumer != null) {
+			// Clear interruptions to ensure that the consumer closes successfully...
+			// (working around misbehaving JMS providers such as ActiveMQ)
+			boolean wasInterrupted = Thread.interrupted();
+			try {
+				consumer.close();
+			}
+			catch (JMSException ex) {
+				LOG.log(Level.FINEST, "Could not close JMS MessageConsumer", ex);
+			}
+			catch (Throwable ex) {
+				// We don't trust the JMS provider: It might throw RuntimeException or Error.
+				LOG.log(Level.FINEST, "Unexpected exception on closing JMS MessageConsumer", ex);
+			}
+			finally {
+				if (wasInterrupted) {
+					// Reset the interrupted flag as it was before.
+					Thread.currentThread().interrupt();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Close the given JMS MessageProducer and ignore any thrown exception.
+	 * This is useful for typical <code>finally</code> blocks in manual JMS code.
+	 * @param producer the JMS MessageProducer to close (may be <code>null</code>)
+	 */
+	public static void closeMessageProducer(MessageProducer producer) {
+		if (producer != null) {
+			try {
+				producer.close();
+			}
+			catch (JMSException ex) {
+				LOG.log(Level.FINEST, "Could not close JMS MessageProducer", ex);
+			}
+			catch (Throwable ex) {
+				// We don't trust the JMS provider: It might throw RuntimeException or Error.
+				LOG.log(Level.FINEST, "Unexpected exception on closing JMS MessageProducer", ex);
+			}
+		}
+	}
 }

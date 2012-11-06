@@ -100,15 +100,9 @@ public class JMSCachePeer implements CachePeer, MessageListener {
     /**
      * Cleanup on shutdown
      */
-    public void dispose() throws JMSException {
-
-        producerSession.close();
-        cacheManager = null;
-        messageProducer.close();
-        getQueueSession.close();
-
+    public void dispose() {
+    	cacheManager = null;
         shutdown = true;
-
     }
 
     /**
