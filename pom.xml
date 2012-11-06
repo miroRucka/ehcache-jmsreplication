@@ -6,10 +6,10 @@
     <version>2.3</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <groupId>net.sf.ehcache</groupId>
+  <groupId>com.ikentoo.ehcache</groupId>
   <artifactId>ehcache-jmsreplication</artifactId>
   <name>JMS Replication</name>
-  <version>0.5-SNAPSHOT</version>
+  <version>0.5</version>
   <packaging>jar</packaging>
   <description>This module provides replication via JMS 1.1</description>
   <dependencies>
